@@ -126,12 +126,8 @@ class TRG:
         """
 
         # decompose transfer tensor with SVD
-        U_l, V_l = self.svd(
-            self.transfer_tensor, orientation="left", truncate=self.truncate
-        )
-        U_r, V_r = self.svd(
-            self.transfer_tensor, orientation="right", truncate=self.truncate
-        )
+        U_l, V_l = self.svd(self.transfer_tensor, orientation="left")
+        U_r, V_r = self.svd(self.transfer_tensor, orientation="right")
 
         # contract the plaquette
         ten_1 = np.einsum("wic,gix->wxgc", V_l, U_r)
