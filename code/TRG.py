@@ -57,7 +57,7 @@ class TRG:
                             + (2 * b - 1) * (2 * l - 1)
                             + (2 * l - 1) * (2 * t - 1)
                         )
-                        transfer_tensor[t, r, b, l] = np.exp(-self.beta * spins)
+                        transfer_tensor[t, r, b, l] = np.exp(self.beta * spins)
 
         self.transfer_tensor = transfer_tensor
 
