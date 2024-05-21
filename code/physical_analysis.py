@@ -117,7 +117,7 @@ def analysis_U(N, betas, truncation):
     """
 
     U_exact = compute_U_exact(betas, 1)
-    U_num = -np.gradient(np.log(compute_Z_num(N, betas, truncation))*N)
+    U_num = -np.gradient(np.log(compute_Z_num(N, betas, truncation)) * N)
 
     plt.plot(betas, U_exact, label="Exact")
     plt.plot(betas, U_num, label="Numerical")
