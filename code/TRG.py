@@ -139,7 +139,7 @@ class TRG:
         trace = np.trace(np.trace(ten_3, axis1=0, axis2=2), axis1=0, axis2=1)
 
         self.transfer_tensor = np.copy(ten_3 / trace)
-        self.Z = self.Z * trace ** (1 / 2**n)
+        self.Z = self.Z * trace ** (1 / 2 ** (n + 1))
 
         return self.Z
 
