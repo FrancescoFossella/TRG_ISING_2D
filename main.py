@@ -1,7 +1,9 @@
 from code.TRG import TRG
 
-trg = TRG(4, 0.5)
+import numpy as np
 
-tn = trg.initialize()
+trg = TRG(2, 1)
 
-trg.update()
+Z = trg.solve()
+
+print(Z)
