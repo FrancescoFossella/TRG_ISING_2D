@@ -96,9 +96,10 @@ class TRG:
             S = S[: self.truncate]
             V = V[: self.truncate, :]
         elif isinstance(self.truncate, float) and 0 <= self.truncate <= 1:
-            U = U[:, : int(self.truncate * len(S))]
-            S = S[: int(self.truncate * len(S))]
-            V = V[: int(self.truncate * len(S)), :]
+            truncation = int(np.ceil(self.truncate * len(S)))
+            U = U[:, :truncation]
+            S = S[:truncation]
+            V = V[:truncation, :]
         elif isinstance(self.truncate, None):
             pass
         else:
@@ -152,4 +153,4 @@ class TRG:
         for n in range(1, self.N + 1):
             Z = self.update(n)
 
-        return np.log2(Z)
+        return Z
