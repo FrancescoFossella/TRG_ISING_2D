@@ -11,9 +11,26 @@ class TRG:
         The size of the lattice.
     beta : float
         The inverse temperature.
+    truncate : int
+        The number of singular values to keep in the SVD.
+
+    Attributes
+    ----------
+    N : int
+        The size of the lattice.
+    N_curr : int
+        The current size of the lattice.
+    beta : float
+        The inverse temperature.
+    truncate : int or float
+        The number of singular values to keep in the SVD. If an integer, the number of singular values to keep. If a float, the fraction of singular values to keep.
+    transfer_tensor : np.ndarray
+        The transfer tensor.
+    Z : float
+        The partition function.
     """
 
-    def __init__(self, N, beta, truncate=4):
+    def __init__(self, N, beta, truncate=10):
 
         self.N = N
         self.N_curr = N
@@ -22,11 +39,10 @@ class TRG:
 
         self.transfer_tensor = None
         self.Z = 1
-        # self.tensor_network = None
 
     def initialize(self):
         """
-        Initialize the initial tensor network.
+        Initialize the initial transfer tensor.
         """
 
         transfer_tensor = np.zeros((2, 2, 2, 2))
@@ -45,29 +61,18 @@ class TRG:
 
         self.transfer_tensor = transfer_tensor
 
-        # tensor_network = TensorNetwork(
-        #     [transfer_tensor] * self.N**2,
-        #     [(i, j) for i in range(self.N) for j in range(self.N)],
-        # )
-
-        # self.tensor_network = tensor_network
-
         return transfer_tensor
 
-    def svd(self, tensor, orientation="left", truncate=None):
+    def svd(self, tensor, orientation="left"):
         """
-        Perform the singular value decomposition of a tensor along the specified indices. The orientation determines which indices to group together.
+        Perform the singular value decomposition of a tensor. The orientation determines which indices to group together.
 
         Parameters
         ----------
         tensor : np.ndarray
             The tensor to perform the SVD on.
-        inds : list of int
-            The indices to group together.
         orientation : str
             The orientation of the indices to group together. Either "left" or "right".
-        truncate : int
-            The number of singular values to remove.
         """
 
         shape = tensor.shape
@@ -86,10 +91,18 @@ class TRG:
         U, S, V = np.linalg.svd(tensor, full_matrices=False)
 
         # truncate singular values
-        if truncate is not None:
-            U = U[:, :truncate]
-            S = S[:truncate]
-            V = V[:truncate, :]
+        if isinstance(self.truncate, int):
+            U = U[:, : self.truncate]
+            S = S[: self.truncate]
+            V = V[: self.truncate, :]
+        elif isinstance(self.truncate, float) and 0 <= self.truncate <= 1:
+            U = U[:, : int(self.truncate * len(S))]
+            S = S[: int(self.truncate * len(S))]
+            V = V[: int(self.truncate * len(S)), :]
+        elif isinstance(self.truncate, None):
+            pass
+        else:
+            raise ValueError("Invalid truncate value.")
 
         # contract singular values back into U and V
         U = U @ np.diag(np.sqrt(S))
@@ -107,8 +120,10 @@ class TRG:
 
         return U, V
 
-    def update(self):
-        """"""
+    def update(self, n):
+        """
+        Update the transfer tensor, i.e. one step of the TRG algorithm.
+        """
 
         # decompose transfer tensor with SVD
         U_l, V_l = self.svd(
@@ -123,15 +138,11 @@ class TRG:
         ten_2 = np.einsum("yei,iav->eavy", V_r, U_l)
         ten_3 = np.einsum("wxij,jivy->wxvy", ten_1, ten_2)
 
-        # ten_1 = np.tensordot(V_l, U_r, axes=(1, 1))
-        # ten_2 = np.tensordot(V_r, U_l, axes=(2, 1))
-        # ten_3 = np.tensordot(ten_1, ten_2, axes=([2, 3], [1, 2]))
-
         # compute the partition function
         trace = np.trace(np.trace(ten_3, axis1=0, axis2=2), axis1=0, axis2=1)
 
         self.transfer_tensor = np.copy(ten_3 / trace)
-        self.Z = self.Z * trace ** (1 / 2**self.N_curr)
+        self.Z = self.Z * trace ** (1 / 2**n)
 
         return self.Z
 
@@ -143,21 +154,6 @@ class TRG:
         self.initialize()
 
         for n in range(1, self.N + 1):
-            Z = self.update()
-            self.N_curr = n
+            Z = self.update(n)
 
         return np.log2(Z)
-
-
-class Tensor:
-
-    def __init__(self, array, inds=None):
-        self.array = array
-        self.inds = inds
-
-
-class TensorNetwork:
-
-    def __init__(self, tensors, inds):
-        self.tensors = tensors
-        self.inds = inds
