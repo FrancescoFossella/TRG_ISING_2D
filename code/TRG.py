@@ -19,7 +19,7 @@ class TRG:
         self.beta = beta
         self.tensor_network = None
 
-    def svd(self, tensor, inds, orientation="left", truncate=None):
+    def svd(self, tensor, orientation="left", truncate=0):
         """
         Perform the singular value decomposition of a tensor along the specified indices. The orientation determines which indices to group together.
 
@@ -32,7 +32,7 @@ class TRG:
         orientation : str
             The orientation of the indices to group together. Either "left" or "right".
         truncate : int
-            The number of singular values to keep.
+            The number of singular values to remove.
         """
 
         # reshape tensor for SVD
@@ -47,24 +47,24 @@ class TRG:
         U, S, V = np.linalg.svd(tensor)
 
         # truncate singular values
-        U = U[:, :truncate]
-        S = S[:truncate]
-        V = V[:truncate, :]
+        U = U[:, : 4 - truncate]
+        S = S[: 4 - truncate]
+        V = V[: 4 - truncate, :]
 
         # contract singular values back into V
-        W = np.tensordot(U, np.diag(S), (1, 0))
+        V = np.tensordot(U, np.diag(S), (1, 0))
 
         # reshape tensors
         if orientation == "left":
-            U = U.reshape((2, 2, truncate))
-            W = W.reshape((2, 2, truncate))
+            U = U.reshape((2, 2, -1))
+            V = V.reshape((2, 2, -1))
         elif orientation == "right":
-            V = V.reshape((truncate, 2, 2))
-            W = W.reshape((truncate, 2, 2))
+            U = U.reshape((-1, 2, 2))
+            V = V.reshape((-1, 2, 2))
         else:
             raise ValueError("Invalid orientation.")
 
-        return U, S, V
+        return U, V
 
     def initialize(self):
         """
