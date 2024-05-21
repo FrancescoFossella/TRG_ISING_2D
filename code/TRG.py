@@ -13,11 +13,44 @@ class TRG:
         The inverse temperature.
     """
 
-    def __init__(self, N, beta):
+    def __init__(self, N, beta, truncate=2):
 
         self.N = N
+        self.N_curr = N
         self.beta = beta
+        self.truncate = truncate
+
         self.tensor_network = None
+
+    def initialize(self):
+        """
+        Initialize the initial tensor network.
+        """
+
+        transfer_tensor = np.zeros((2, 2, 2, 2))
+
+        for t in [0, 1]:
+            for r in [0, 1]:
+                for b in [0, 1]:
+                    for l in [0, 1]:
+                        spins = (
+                            (2 * t - 1) * (2 * r - 1)
+                            + (2 * r - 1) * (2 * b - 1)
+                            + (2 * b - 1) * (2 * l - 1)
+                            + (2 * l - 1) * (2 * t - 1)
+                        )
+                        transfer_tensor[t, r, b, l] = np.exp(self.beta * spins)
+
+        transfer_tensor = transfer_tensor
+
+        tensor_network = TensorNetwork(
+            [transfer_tensor] * self.N**2,
+            [(i, j) for i in range(self.N) for j in range(self.N)],
+        )
+
+        self.tensor_network = tensor_network
+
+        return tensor_network
 
     def svd(self, tensor, orientation="left", truncate=0):
         """
@@ -51,50 +84,57 @@ class TRG:
         S = S[: 4 - truncate]
         V = V[: 4 - truncate, :]
 
-        # contract singular values back into V
-        V = np.tensordot(U, np.diag(S), (1, 0))
+        # contract singular values back into U and V
+        U = U @ np.diag(np.sqrt(S))
+        V = np.diag(np.sqrt(S)) @ V
 
         # reshape tensors
         if orientation == "left":
             U = U.reshape((2, 2, -1))
-            V = V.reshape((2, 2, -1))
+            V = V.reshape((-1, 2, 2))
         elif orientation == "right":
-            U = U.reshape((-1, 2, 2))
+            U = U.reshape((2, 2, -1))
             V = V.reshape((-1, 2, 2))
         else:
             raise ValueError("Invalid orientation.")
 
         return U, V
 
-    def initialize(self):
-        """
-        Initialize the initial tensor network.
-        """
+    def contract_plaquette(self, ten_a, ten_b, ten_c, ten_d):
 
-        transfer_tensor = np.zeros((2, 2, 2, 2))
+        ten_1 = np.tensordot(ten_a[1], ten_b[1], axes=(1, 1))
 
-        for t in [-1, 1]:
-            for r in [-1, 1]:
-                for b in [-1, 1]:
-                    for l in [-1, 1]:
-                        spins = t * r + r * b + b * l + l * t
+        ten_2 = np.tensordot(ten_c[1], ten_d[1], axes=(2, 1))
 
-                        transfer_tensor[t, r, b, l] = np.exp(-self.beta * spins)
+        ten_3 = np.tensordot(ten_1, ten_2, axes=([2, 3], [1, 2]))
 
-        transfer_tensor = transfer_tensor
-
-        tensor_network = TensorNetwork(
-            [transfer_tensor] * self.N**2, np.arange(self.N**2)
-        )
-
-        self.tensor_network = tensor_network
-
-        return tensor_network
+        return ten_3
 
     def update(self):
         """
         Do one update step.
         """
+
+        tn = []
+
+        # compute svd
+        for num_tensor, tensor in enumerate(self.tensor_network.tensors):
+
+            if num_tensor % 2 == 0:
+                U, V = self.svd(tensor, orientation="left", truncate=self.truncate)
+            else:
+                U, V = self.svd(tensor, orientation="right", truncate=self.truncate)
+
+            tn.append([U, V])
+
+        # EXAMPLE
+        num_tensor = 0
+        tensor = self.contract_plaquette(
+            tn[num_tensor],
+            tn[num_tensor + 1],
+            tn[num_tensor + self.N],
+            tn[num_tensor + self.N - 1],
+        )
 
         ...
 
