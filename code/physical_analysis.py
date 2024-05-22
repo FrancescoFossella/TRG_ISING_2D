@@ -135,13 +135,13 @@ def analysis_U(N, betas, truncation,delta):
 #     """
 #     Analyze the specific heat of the 2D Ising model
 #     """
-#     kappa = 2 * N ** 2 * np.sinh(2 * betas) / (np.cosh(2 * betas) ** 2)
+#     kappa = 2 * np.sinh(2 * betas) / (np.cosh(2 * betas) ** 2)
     
-#     C_num = kappa * (betas ** 2) * np.gradient(np.gradient(np.log(compute_Z_num(N, betas, truncation)),delta))
+#     C_num = kappa * (betas ** 2) * np.gradient(np.gradient( np.log(compute_Z_num(N, betas, truncation)),delta), delta)
     
 #     U_exact = compute_U_exact(betas, 1)
         
-#     y=-np.gradient(U_exact,delta)
+#     y=-np.gradient(U_exact,delta)/N
 #     plt.plot(betas, y,color='black', label=r'$-\beta \,f_{\infty}$')
 
 #     plt.plot(betas, C_num, label="Numerical")
