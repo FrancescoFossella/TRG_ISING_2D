@@ -111,21 +111,28 @@ def analysis_H(N, betas, truncation):
     plt.show()
 
 
-def analysis_U(N, betas, truncation):
+def analysis_U(N, betas, truncation,delta):
     """
     Analyze the internal energy per site of the 2D Ising model
     """
 
     U_exact = compute_U_exact(betas, 1)
-    U_num = -np.gradient(np.log(compute_Z_num(N, betas, truncation)) * N)
+    U_num = -np.gradient(np.log(compute_Z_num(N, betas, truncation)),delta)
 
-    plt.plot(betas, U_exact, label="Exact")
+    '''plt.plot(betas, U_exact, label="Exact")
     plt.plot(betas, U_num, label="Numerical")
     plt.xlabel(r"$\beta J$")
     plt.ylabel(r"$-\beta U$")
     plt.title(r"Internal energy density $-\beta \, U$")
     plt.legend()
     plt.savefig("figures/internal_free_energy.pdf", dpi=4000)
-    plt.show()
+    plt.show()'''
 
+    
     return U_exact, U_num
+
+
+
+
+############################# new derivatives 
+
