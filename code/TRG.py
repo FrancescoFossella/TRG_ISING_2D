@@ -18,8 +18,6 @@ class TRG:
     ----------
     N : int
         The size of the lattice.
-    N_curr : int
-        The current size of the lattice.
     beta : float
         The inverse temperature.
     truncate : int or float
@@ -30,17 +28,18 @@ class TRG:
         The partition function.
     """
 
-    def __init__(self, N, beta, truncate=10):
+    def __init__(self, N, beta, truncate=0.25):
 
+        # parameters
         self.N = N
-        self.N_curr = N
         self.beta = beta
         self.truncate = truncate
 
+        # data to update
         self.transfer_tensor = None
         self.Z = 1
 
-    def initialize(self):
+    def create_transfer_tensor(self):
         """
         Initialize the initial transfer tensor.
         """
@@ -63,9 +62,9 @@ class TRG:
 
         return transfer_tensor
 
-    def svd(self, tensor, orientation="left"):
+    def svd_transfer_tensor(self, tensor, orientation="left"):
         """
-        Perform the singular value decomposition of a tensor. The orientation determines which indices to group together.
+        Perform the singular value decomposition of the transfer tensor. The orientation determines which indices to group together.
 
         Parameters
         ----------
@@ -100,7 +99,7 @@ class TRG:
             U = U[:, :truncation]
             S = S[:truncation]
             V = V[:truncation, :]
-        elif isinstance(self.truncate, None):
+        elif self.truncate is None:
             pass
         else:
             raise ValueError("Invalid truncate value.")
@@ -127,8 +126,8 @@ class TRG:
         """
 
         # decompose transfer tensor with SVD
-        U_l, V_l = self.svd(self.transfer_tensor, orientation="left")
-        U_r, V_r = self.svd(self.transfer_tensor, orientation="right")
+        U_l, V_l = self.svd_transfer_tensor(self.transfer_tensor, orientation="left")
+        U_r, V_r = self.svd_transfer_tensor(self.transfer_tensor, orientation="right")
 
         # contract the plaquette
         ten_1 = np.einsum("wic,gix->wxgc", V_l, U_r)
@@ -148,7 +147,7 @@ class TRG:
         Compute the partition function.
         """
 
-        self.initialize()
+        self.create_transfer_tensor()
 
         for n in range(1, self.N + 1):
             Z = self.update(n)
